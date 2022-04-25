@@ -15,7 +15,7 @@ import re
 import os
 import unicodedata
 from builtins import str as unicode
-from .expand import normalize_numbers
+from expand import normalize_numbers
 
 try:
     nltk.data.find('taggers/averaged_perceptron_tagger.zip')
@@ -145,7 +145,7 @@ class G2p(object):
         preds = [self.idx2p.get(idx, "<unk>") for idx in preds]
         return preds
 
-    def __call__(self, text):
+    def __call__(self, text, get_mapping=False):
         # preprocessing
         text = unicode(text)
         text = normalize_numbers(text)
@@ -161,26 +161,47 @@ class G2p(object):
         tokens = pos_tag(words)  # tuples of (word, tag)
 
         # steps
-        prons = []
-        for word, pos in tokens:
-            if re.search("[a-z]", word) is None:
-                pron = [word]
+        if get_mapping:
+            prons = {}
+            for word, pos in tokens:
+                if re.search("[a-z]", word) is None:
+                    pron = [word]
 
-            elif word in self.homograph2features:  # Check homograph
-                pron1, pron2, pos1 = self.homograph2features[word]
-                if pos.startswith(pos1):
-                    pron = pron1
-                else:
-                    pron = pron2
-            elif word in self.cmu:  # lookup CMU dict
-                pron = self.cmu[word][0]
-            else: # predict for oov
-                pron = self.predict(word)
+                elif word in self.homograph2features:  # Check homograph
+                    pron1, pron2, pos1 = self.homograph2features[word]
+                    if pos.startswith(pos1):
+                        pron = pron1
+                    else:
+                        pron = pron2
+                elif word in self.cmu:  # lookup CMU dict
+                    pron = self.cmu[word][0]
+                else: # predict for oov
+                    pron = self.predict(word)
 
-            prons.extend(pron)
-            prons.extend([" "])
+                prons[word] = pron
 
-        return prons[:-1]
+            return prons
+        else:
+            prons = []
+            for word, pos in tokens:
+                if re.search("[a-z]", word) is None:
+                    pron = [word]
+
+                elif word in self.homograph2features:  # Check homograph
+                    pron1, pron2, pos1 = self.homograph2features[word]
+                    if pos.startswith(pos1):
+                        pron = pron1
+                    else:
+                        pron = pron2
+                elif word in self.cmu:  # lookup CMU dict
+                    pron = self.cmu[word][0]
+                else: # predict for oov
+                    pron = self.predict(word)
+
+                prons.extend(pron)
+                prons.extend([" "])
+
+            return prons[:-1]
 
 if __name__ == '__main__':
     texts = ["I have $250 in my pocket.", # number -> spell-out
@@ -189,6 +210,6 @@ if __name__ == '__main__':
              "I'm an activationist."] # newly coined word
     g2p = G2p()
     for text in texts:
-        out = g2p(text)
+        out = g2p(text, get_mapping=True)
         print(out)
 
