@@ -15,7 +15,7 @@ import re
 import os
 import unicodedata
 from builtins import str as unicode
-from .expand import normalize_numbers
+from expand import normalize_numbers
 
 try:
     nltk.data.find('taggers/averaged_perceptron_tagger.zip')
@@ -162,8 +162,9 @@ class G2p(object):
 
         # steps
         if get_mapping:
-            prons = {}
+            prons = []
             for word, pos in tokens:
+                pair = {}
                 if re.search("[a-z]", word) is None:
                     pron = [word]
 
@@ -178,7 +179,10 @@ class G2p(object):
                 else: # predict for oov
                     pron = self.predict(word)
 
-                prons[word] = pron
+                pair[word] = pron
+
+                print(pair)
+                prons.append(pair)
 
             return prons
         else:
@@ -207,7 +211,8 @@ if __name__ == '__main__':
     texts = ["I have $250 in my pocket.", # number -> spell-out
              "popular pets, e.g. cats and dogs", # e.g. -> for example
              "I refuse to collect the refuse around here.", # homograph
-             "I'm an activationist."] # newly coined word
+             "I'm an activationist.", # newly coined word
+             "The peaches and the apples are both fruits"] # duplicated words
     g2p = G2p()
     for text in texts:
         out = g2p(text, get_mapping=True)
