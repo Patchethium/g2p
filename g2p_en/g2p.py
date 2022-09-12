@@ -178,10 +178,7 @@ class G2p(object):
                     pron = self.cmu[word][0]
                 else: # predict for oov
                     pron = self.predict(word)
-
                 pair[word] = pron
-
-                print(pair)
                 prons.append(pair)
 
             return prons
